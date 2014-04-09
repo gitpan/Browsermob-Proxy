@@ -5,12 +5,12 @@ MANIFEST
 META.json
 META.yml
 Makefile.PL
-README.md
 dist.ini
 lib/Browsermob/Proxy.pm
 lib/Browsermob/Server.pm
 t/Proxy.t
 t/Server.t
+t/e2e.t
 t/load.t
 weaver.ini
 xt/release/pod-coverage.t

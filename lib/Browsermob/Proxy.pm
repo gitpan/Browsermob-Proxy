@@ -1,12 +1,11 @@
 package Browsermob::Proxy;
-$Browsermob::Proxy::VERSION = '0.01';
+$Browsermob::Proxy::VERSION = '0.02';
 # ABSTRACT: Perl client for the proxies created by the Browsermob server
 use Moo;
 use Carp;
 use JSON;
 use Net::HTTP::Spore;
 use Net::HTTP::Spore::Middleware::DefaultParams;
-
 
 
 my $spec = {
@@ -49,7 +48,7 @@ my $spec = {
             ],
             description => 'creates a new HAR attached to the proxy and returns the HAR content if there was a previous HAR.'
         },
-        har => {
+        retrieve_har => {
             method => 'GET',
             path => '/:port/har',
             description => 'returns the JSON/HAR content representing all the HTTP traffic passed through the proxy'
@@ -116,7 +115,6 @@ has _spec => (
     }
 );
 
-
 sub BUILD {
     my ($self, $args) = @_;
     my $res = $self->create;
@@ -143,6 +141,13 @@ sub new_har {
 }
 
 
+sub har {
+    my ($self) = @_;
+
+    croak "You need to create a proxy first!" unless $self->has_port;
+    return $self->_spore->retrieve_har->body;
+}
+
 sub DESTROY {
     my $self = shift;
     $self->delete_proxy;
@@ -160,9 +165,11 @@ __END__
 
 Browsermob::Proxy - Perl client for the proxies created by the Browsermob server
 
+=for markdown [![Build Status](https://travis-ci.org/gempesaw/Browsermob-Proxy.svg?branch=master)](https://travis-ci.org/gempesaw/Browsermob-Proxy)
+
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 
@@ -176,7 +183,7 @@ Standalone:
     print $proxy->port;
     $proxy->new_har('Google');
     # create network traffic across your port
-    $proxy->har; # returns a HAR as a JSON blob
+    $proxy->har; # returns a HAR as a hashref, converted from JSON
 
 with L<Browsermob::Server>:
 
@@ -209,30 +216,22 @@ this module to handle the proxies.
 
 =head2 server_port
 
-Required. Indicate at what localhost port we should expect a
-Browsermob Server to be running.
+Required during manual instantiation. Indicate at what localhost port
+we should expect a Browsermob Server to be running.
+
+    my $proxy = Browsermob::Proxy->new(server_port => 8080);
 
 =head2 port
 
 Optional: When instantiating a proxy, you can choose the proxy port on
 your own, or let it automatically assign you a port for the proxy.
 
+    my $proxy = Browsermob::Proxy->new(
+        server_port => 8080
+        port => 9091
+    );
+
 =head1 METHODS
-
-=head2 get_ports
-
-Get a list of ports attached to a ProxyServer managed by ProxyManager
-
-    $proxy->get_proxies
-
-=head2 new
-
-Instantiate a new proxy. C<server_port> is the only required argument
-if you're instantiating this class manually.
-
-    my $proxy = $bmp->create_proxy; # invokes new for you
-
-    my $proxy = BrowserMob::Proxy->new(server_port => 63638);
 
 =head2 new_har
 
@@ -244,19 +243,14 @@ also pass a string to choose your own initial page ref.
     $proxy->new_har;
     $proxy->new_har('Google');
 
-=head2 create
+=head2 har
 
-Create a new proxy. This method is automatically invoked upon
-instantiation, so you shouldn't have to call it unless you're doing
-something unexpected. In fact, if you do call it, things will probably
-get messed up.
+After creating a proxy and initiating a C<new_har>, you can retrieve
+the contents of the current HAR with this method. It returns a hashref
+HAR, and may in the future return an isntance of L<Archive::HAR>.
 
-=head2 delete_proxy
-
-Shutdown the proxy and close the port. This is automatically invoked
-when the C<$proxy> goes out of scope, so you shouldn't have to call
-this either. In fact, if you do call it, things will probably
-get messed up.
+    my $har = $proxy->har;
+    print Dumper $har->{log}->{entries}->[0];
 
 =head1 SEE ALSO
 
