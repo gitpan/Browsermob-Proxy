@@ -43,6 +43,7 @@
          "requires" : {
             "DDP" : "0",
             "Data::Dumper" : "0",
+            "Net::HTTP::Spore::Middleware::Mock" : "0",
             "Net::Ping" : "0",
             "Test::LWP::UserAgent" : "0",
             "Test::More" : "0"
@@ -60,6 +61,6 @@
          "web" : "https://github.com/gempesaw/Browsermob-Proxy"
       }
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }
 

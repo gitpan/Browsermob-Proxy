@@ -1,5 +1,5 @@
 package Browsermob::Proxy;
-$Browsermob::Proxy::VERSION = '0.02';
+$Browsermob::Proxy::VERSION = '0.03';
 # ABSTRACT: Perl client for the proxies created by the Browsermob server
 use Moo;
 use Carp;
@@ -57,9 +57,16 @@ my $spec = {
 };
 
 
+has server_addr => (
+    is => 'rw',
+    default => sub { '127.0.0.1' }
+);
+
+
+
 has server_port => (
-    is => 'ro',
-    required => 1
+    is => 'rw',
+    default => sub { 8080 }
 );
 
 
@@ -68,6 +75,12 @@ has port => (
     lazy => 1,
     predicate => 'has_port',
     default => sub { '' }
+);
+
+
+has trace => (
+    is => 'ro',
+    default => sub { 0 }
 );
 
 has mock => (
@@ -84,7 +97,7 @@ has _spore => (
         my $self = shift;
         my $client = Net::HTTP::Spore->new_from_string(
             to_json($self->_spec),
-            # trace => 1
+            trace => $self->trace
         );
         $client->enable('Format::JSON');
 
@@ -110,7 +123,7 @@ has _spec => (
     lazy => 1,
     builder => sub {
         my $self = shift;
-        $spec->{base_url} = 'http://127.0.0.1:' . $self->server_port . '/proxy';
+        $spec->{base_url} = 'http://' . $self->server_addr . ':' . $self->server_port . '/proxy';
         return $spec;
     }
 );
@@ -148,6 +161,17 @@ sub har {
     return $self->_spore->retrieve_har->body;
 }
 
+
+sub selenium_proxy {
+    my ($self) = @_;
+
+    return {
+        proxyType => 'manual',
+        httpProxy => 'http://' . $self->server_addr . ':' . $self->port,
+        sslProxy => 'http://' . $self->server_addr . ':' . $self->port
+    };
+}
+
 sub DESTROY {
     my $self = shift;
     $self->delete_proxy;
@@ -169,7 +193,7 @@ Browsermob::Proxy - Perl client for the proxies created by the Browsermob server
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 
@@ -214,10 +238,14 @@ this module to handle the proxies.
 
 =head1 ATTRIBUTES
 
+=head2 server_addr
+
+Optional: specify where the proxy server is; defaults to 127.0.0.1
+
 =head2 server_port
 
-Required during manual instantiation. Indicate at what localhost port
-we should expect a Browsermob Server to be running.
+Optional: Indicate at what port we should expect a Browsermob Server
+to be running; defaults to 8080
 
     my $proxy = Browsermob::Proxy->new(server_port => 8080);
 
@@ -230,6 +258,14 @@ your own, or let it automatically assign you a port for the proxy.
         server_port => 8080
         port => 9091
     );
+
+=head2 trace
+
+Set Net::HTTP::Spore's trace option; defaults to 0; set it to 1 to see
+headers and 2 to see headers and responses. This can only be set during
+construction.
+
+    my $proxy = Browsermob::Proxy->new( trace => 2 );
 
 =head1 METHODS
 
@@ -251,6 +287,14 @@ HAR, and may in the future return an isntance of L<Archive::HAR>.
 
     my $har = $proxy->har;
     print Dumper $har->{log}->{entries}->[0];
+
+=head2 selenium_proxy
+
+Generate the proper capabilities for use in the constructor of a new
+Selenium::Remote::Driver object.
+
+    my $proxy = Browsermob::Proxy->new( server_port => 63638 );
+    my $driver = Selenium::Remote::Driver->new( proxy => $proxy->selenium_proxy );
 
 =head1 SEE ALSO
 

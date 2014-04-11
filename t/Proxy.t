@@ -6,6 +6,7 @@ use Test::More;
 use JSON;
 use LWP::UserAgent;
 use Browsermob::Proxy;
+use Net::HTTP::Spore::Middleware::Mock;
 
 my $server_port = 63638;
 my $port = 9091;
@@ -96,6 +97,27 @@ HAR: {
         ok(exists $har->{log}, 'with a log entry');
         ok(exists $har->{log}->{entries}->[0], 'that has an entries arrayref');
     }
+}
+
+CAPABILITIES: {
+    my $proxy = Browsermob::Proxy->new(
+        server_port => $server_port,
+        port => $port,
+        mock => generate_mock_server()
+    );
+
+    my $caps = $proxy->selenium_proxy;
+    isa_ok($caps, 'HASH', 'caps is a hashref');
+    ok($caps->{proxyType} eq 'manual', 'and has a proxyType');
+    ok($caps->{httpProxy} =~ /$port/i, 'and a httpUrl proxyType to the correct port');
+
+    my $addr = $proxy->server_addr;
+    cmp_ok($caps->{httpProxy}, '=~', qr/$addr/i, 'and the correct server addr');
+
+    ok($caps->{sslProxy} =~ /$port/i, 'and a httpUrl proxyType to the correct port in SSL');
+
+    $addr = $proxy->server_addr;
+    cmp_ok($caps->{sslProxy}, '=~', qr/$addr/i, 'and the correct server addr in SSL');
 }
 
 sub generate_mock_server {
