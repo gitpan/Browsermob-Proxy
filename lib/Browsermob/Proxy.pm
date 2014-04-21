@@ -1,5 +1,5 @@
 package Browsermob::Proxy;
-$Browsermob::Proxy::VERSION = '0.03';
+$Browsermob::Proxy::VERSION = '0.04';
 # ABSTRACT: Perl client for the proxies created by the Browsermob server
 use Moo;
 use Carp;
@@ -12,6 +12,8 @@ my $spec = {
     name => 'BrowserMob Proxy',
     formats => ['json'],
     version => '0.01',
+    # server name and port are constructed in the _spore builder
+    # base_url => '/proxy',
     methods => {
         get_proxies => {
             method => 'GET',
@@ -115,7 +117,7 @@ has _spore => (
 
         return $client;
     },
-    handles => [keys $spec->{methods}]
+    handles => [keys %{ $spec->{methods} }]
 );
 
 has _spec => (
@@ -163,7 +165,8 @@ sub har {
 
 
 sub selenium_proxy {
-    my ($self) = @_;
+    my ($self, $user_will_initiate_har_manually) = @_;
+    $self->new_har unless $user_will_initiate_har_manually;
 
     return {
         proxyType => 'manual',
@@ -193,7 +196,7 @@ Browsermob::Proxy - Perl client for the proxies created by the Browsermob server
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
@@ -221,15 +224,20 @@ with L<Browsermob::Server>:
 
 =head1 DESCRIPTION
 
-From L<http://bmp.lightbody.net/>: BrowserMob proxy is based on
-technology developed in the Selenium open source project and a
-commercial load testing and monitoring service originally called
-BrowserMob and now part of Neustar.
+From L<http://bmp.lightbody.net/>:
+
+=over 4
+
+BrowserMob proxy is based on technology developed in the Selenium open
+source project and a commercial load testing and monitoring service
+originally called BrowserMob and now part of Neustar.
 
 It can capture performance data for web apps (via the HAR format), as
 well as manipulate browser behavior and traffic, such as whitelisting
 and blacklisting content, simulating network traffic and latency, and
 rewriting HTTP requests and responses.
+
+=back
 
 This module is a Perl client interface to interact with the server and
 its proxies. It uses L<Net::HTTP::Spore>. You can use
@@ -295,6 +303,18 @@ Selenium::Remote::Driver object.
 
     my $proxy = Browsermob::Proxy->new( server_port => 63638 );
     my $driver = Selenium::Remote::Driver->new( proxy => $proxy->selenium_proxy );
+    $driver->get('http://www.google.com');
+    print Dumper $proxy->har;
+
+C<selenium_proxy> will also call L</new_har> for you automatically,
+initiating an unnamed har, unless you pass it something truthy.
+
+    my $proxy = Browsermob::Proxy->new( server_port => 63638 );
+    my $driver = Selenium::Remote::Driver->new( proxy => $proxy->selenium_proxy(1) );
+    # later
+    $proxy->new_har;
+    $driver->get('http://www.google.com');
+    print Dumper $proxy->har;
 
 =head1 SEE ALSO
 

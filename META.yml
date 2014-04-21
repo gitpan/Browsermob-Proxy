@@ -31,4 +31,4 @@ requires:
 resources:
   bugtracker: https://github.com/gempesaw/Browsermob-Proxy/issues
   repository: git://github.com/gempesaw/Browsermob-Proxy.git
-version: '0.03'
+version: '0.04'
