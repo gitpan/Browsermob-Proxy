@@ -1,5 +1,5 @@
 package Browsermob::Server;
-$Browsermob::Server::VERSION = '0.04';
+$Browsermob::Server::VERSION = '0.05';
 # ABSTRACT: Perl client to control the Browsermob Proxy server
 use strict;
 use warnings;
@@ -9,8 +9,6 @@ use JSON;
 use LWP::UserAgent;
 use IO::Socket::INET;
 use Browsermob::Proxy;
-
-
 
 
 has path => (
@@ -110,27 +108,24 @@ Browsermob::Server - Perl client to control the Browsermob Proxy server
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 SYNOPSIS
 
     my $server = Browsermob::Server->new(
-        path => '/path/to/browsermob-proxy'
+        path => '/opt/browsermob-proxy-2.0-beta-9/bin/browsermob-proxy'
     );
-    $server->start;
-    my $proxy = $server->create_proxy;
+    $server->start;             # ignore if your server is already started
 
-    print $proxy->port;
-    $proxy->create_har('Test');
+    my $proxy = $server->create_proxy;
+    my $port = $proxy->port;
+
+    $proxy->new_har;
+
     # generate traffic across your port
-    $proxy->har; # returns a HAR
+    `curl -x http://localhost:$port http://www.google.com > /dev/null 2>&1`;
 
-Alternatively, assuming there's a BMP server on 63636 for example,
-
-    my $server = Browsermob::Server->new(
-        port => 63636
-    );
-    my $proxy = $server->create_proxy;
+    print Dumper $proxy->har;
 
 =head1 DESCRIPTION
 

@@ -1,5 +1,5 @@
 package Browsermob::Proxy;
-$Browsermob::Proxy::VERSION = '0.04';
+$Browsermob::Proxy::VERSION = '0.05';
 # ABSTRACT: Perl client for the proxies created by the Browsermob server
 use Moo;
 use Carp;
@@ -53,7 +53,19 @@ my $spec = {
         retrieve_har => {
             method => 'GET',
             path => '/:port/har',
+            required_params => [
+                'port'
+            ],
             description => 'returns the JSON/HAR content representing all the HTTP traffic passed through the proxy'
+        },
+        auth_basic => {
+            method => 'POST',
+            path => '/:port/auth/basic/:domain',
+            required_params => [
+                'port',
+                'domain'
+            ],
+            description => 'Sets automatic basic authentication for the specified domain'
         }
     }
 };
@@ -165,14 +177,37 @@ sub har {
 
 
 sub selenium_proxy {
-    my ($self, $user_will_initiate_har_manually) = @_;
-    $self->new_har unless $user_will_initiate_har_manually;
+    my ($self, $initiate_manually) = @_;
+    $self->new_har unless $initiate_manually;
 
     return {
         proxyType => 'manual',
         httpProxy => 'http://' . $self->server_addr . ':' . $self->port,
         sslProxy => 'http://' . $self->server_addr . ':' . $self->port
     };
+}
+
+
+sub ua_proxy {
+    my ($self, $initiate_manually) = @_;
+    $self->new_har unless $initiate_manually;
+
+    return ('http', 'http://' . $self->server_addr . ':' . $self->port);
+}
+
+
+sub add_basic_auth {
+    my ($self, $args) = @_;
+    foreach (qw/domain username password/) {
+        croak "$_ is a required parameter for add_basic_auth"
+        unless exists $args->{$_};
+    }
+
+    $self->auth_basic(
+        domain => delete $args->{domain},
+        payload => $args
+    );
+
 }
 
 sub DESTROY {
@@ -196,7 +231,7 @@ Browsermob::Proxy - Perl client for the proxies created by the Browsermob server
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 SYNOPSIS
 
@@ -215,7 +250,7 @@ Standalone:
 with L<Browsermob::Server>:
 
     my $server = Browsermob::Server->new(
-        server_port = 9090
+        server_port => 9090
     );
     $server->start; # ignore if your server is already running
 
@@ -301,20 +336,49 @@ HAR, and may in the future return an isntance of L<Archive::HAR>.
 Generate the proper capabilities for use in the constructor of a new
 Selenium::Remote::Driver object.
 
-    my $proxy = Browsermob::Proxy->new( server_port => 63638 );
-    my $driver = Selenium::Remote::Driver->new( proxy => $proxy->selenium_proxy );
+    my $proxy = Browsermob::Proxy->new;
+    my $driver = Selenium::Remote::Driver->new(
+        browser_name => 'chrome'
+        proxy        => $proxy->selenium_proxy
+    );
     $driver->get('http://www.google.com');
     print Dumper $proxy->har;
 
-C<selenium_proxy> will also call L</new_har> for you automatically,
+N.B.: C<selenium_proxy> will AUTOMATICALLY call L</new_har> for you
 initiating an unnamed har, unless you pass it something truthy.
 
-    my $proxy = Browsermob::Proxy->new( server_port => 63638 );
-    my $driver = Selenium::Remote::Driver->new( proxy => $proxy->selenium_proxy(1) );
+    my $proxy = Browsermob::Proxy->new;
+    my $driver = Selenium::Remote::Driver->new(
+        browser_name => 'chrome'
+        proxy        => $proxy->selenium_proxy(1)
+    );
     # later
     $proxy->new_har;
     $driver->get('http://www.google.com');
     print Dumper $proxy->har;
+
+=head2 ua_proxy
+
+Generate the proper arguments for the proxy method of
+L<LWP::UserAgent>. By default, C<ua_proxy> will initiate a new har for
+you automatically, the same as L</selenium_proxy> does. If you want to
+initialize the har yourself, pass in something truthy.
+
+    my $proxy = Browsermob::Proxy->new;
+    my $ua = LWP::UserAgent->new;
+    $ua->proxy($proxy->ua_proxy);
+
+=head2 add_basic_auth
+
+Set up automatic Basic authentication for a specified domain. Accepts
+as input a HASHREF with the keys C<domain>, C<username>, and
+C<password>. For example,
+
+    $proxy->add_basic_auth({
+        domain => '.google.com',
+        username => 'username',
+        password => 'password'
+    });
 
 =head1 SEE ALSO
 

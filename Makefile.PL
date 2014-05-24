@@ -37,9 +37,10 @@ my %WriteMakefileArgs = (
     "Net::HTTP::Spore::Middleware::Mock" => 0,
     "Net::Ping" => 0,
     "Test::LWP::UserAgent" => 0,
-    "Test::More" => 0
+    "Test::More" => 0,
+    "Try::Tiny" => 0
   },
-  "VERSION" => "0.04",
+  "VERSION" => "0.05",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -60,6 +61,7 @@ my %FallbackPrereqs = (
   "Net::Ping" => 0,
   "Test::LWP::UserAgent" => 0,
   "Test::More" => 0,
+  "Try::Tiny" => 0,
   "strict" => 0,
   "warnings" => 0
 );

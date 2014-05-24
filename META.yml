@@ -9,6 +9,7 @@ build_requires:
   Net::Ping: '0'
   Test::LWP::UserAgent: '0'
   Test::More: '0'
+  Try::Tiny: '0'
 configure_requires:
   ExtUtils::MakeMaker: '6.30'
 dynamic_config: 0
@@ -31,4 +32,4 @@ requires:
 resources:
   bugtracker: https://github.com/gempesaw/Browsermob-Proxy/issues
   repository: git://github.com/gempesaw/Browsermob-Proxy.git
-version: '0.04'
+version: '0.05'
